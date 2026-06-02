@@ -1,0 +1,8 @@
+flask
+tensorflow
+ultralytics
+opencv-python-headless
+pandas
+numpy
+flask-login
+werkzeug

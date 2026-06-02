@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="dashboard-grid">
+    <!-- Sidebar: History -->
+    <aside class="sidebar glass-card fade-in-up">
+        <h3><i class="fa-solid fa-clock-rotate-left"></i> Recent Analysis</h3>
+        <div class="history-list">
+            {% if history %}
+            {% for item in history %}
+            <div class="history-item">
+                <div class="history-date">{{ item.timestamp }}</div>
+                <div class="history-species">{{ item.species }}</div>
+                <div class="history-details">
+                    <span>{{ "%.2f"|format(item.length) }}cm</span> •
+                    <span class="weight-display">{{ "%.0f"|format(item.weight) }}g</span>
+                </div>
+            </div>
+            {% endfor %}
+            {% else %}
+            <p style="color: var(--text-light); text-align: center; margin-top: 1rem;">No history yet. Start analyzing!
+            </p>
+            {% endif %}
+        </div>
+    </aside>
+
+    <!-- Main Workspace -->
+    <div class="workspace">
+        <!-- Hero / Upload -->
+        <div id="uploadSection" class="glass-card fade-in-up">
+            <h1 class="text-center" style="margin-bottom: 0.5rem;">Intelligent Marine Analysis</h1>
+            <p class="text-center" style="color: var(--text-light); margin-bottom: 2rem;">Upload an image to detect
+                species and estimate growth.</p>
+
+            <input type="file" id="fileInput" accept="image/*" hidden>
+            <div class="upload-area" id="dropZone">
+                <i class="fa-solid fa-cloud-arrow-up upload-icon"></i>
+                <h3>Drag & Drop or Click to Upload</h3>
+                <p style="color: var(--text-light);">Supports JPG, PNG, WEBP</p>
+            </div>
+        </div>
+
+        <!-- Processing State -->
+        <div id="loadingState" class="glass-card hidden text-center">
+            <div class="spinner"></div>
+            <h3>Analyzing Ecosystem...</h3>
+            <p>Identifying species and segmentation</p>
+        </div>
+
+        <!-- Step 1: Classification Results (Wizard Step 2) -->
+        <div id="stepClassification" class="glass-card hidden fade-in-up">
+            <h2 class="text-center" style="margin-bottom: 2rem;"><i class="fa-solid fa-microscope"></i> Step 1: Species Identification</h2>
+            
+            <div style="display: flex; flex-wrap: wrap; gap: 2rem; justify-content: center; align-items: center;">
+                <div class="image-wrapper" style="flex: 1; max-width: 400px; min-width: 300px;">
+                    <span class="image-label">Uploaded Image</span>
+                    <img id="displayOriginal" src="" alt="Original Upload" style="width: 100%; border-radius: 1rem; display: block;">
+                </div>
+                
+                <div style="flex: 1; min-width: 300px; display: flex; flex-direction: column; gap: 1.5rem;">
+                    <div class="metric-card">
+                        <span class="metric-label">Identified Species</span>
+                        <span class="metric-value" id="resSpecies" style="font-size: 2rem;">--</span>
+                    </div>
+                    <div class="metric-card">
+                        <span class="metric-label">Confidence Score</span>
+                        <span class="metric-value" style="color: var(--success);">High (>95%)</span>
+                    </div>
+                    <button id="btnMeasure" class="btn btn-primary btn-glow btn-block" style="padding: 1rem; font-size: 1.1rem; margin-top: 1rem;">
+                        Proceed to Length Estimation <i class="fa-solid fa-arrow-right" style="margin-left: 0.5rem;"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 2: Length Estimation (Wizard Step 3) -->
+        <div id="stepLength" class="glass-card hidden fade-in-up">
+            <h2 class="text-center" style="margin-bottom: 2rem;"><i class="fa-solid fa-ruler-combined"></i> Step 2: Length Estimation</h2>
+
+            <div class="comparison-view">
+                <div class="image-wrapper">
+                    <span class="image-label">Original View</span>
+                    <img id="lengthOriginal" src="" alt="Original Upload">
+                </div>
+                <div class="image-wrapper" id="processedWrapper">
+                    <span class="image-label">AI Segmentation & Measurement</span>
+                    <img id="displayProcessed" src="" alt="AI Output">
+                </div>
+            </div>
+
+            <div class="metrics-grid" style="margin-top: 1.5rem;">
+                <div class="metric-card">
+                    <span class="metric-label">Species</span>
+                    <span class="metric-value" id="lengthSpecies">--</span>
+                </div>
+                <div class="metric-card">
+                    <span class="metric-label">Estimated Length</span>
+                    <span class="metric-value" id="resLength">-- cm</span>
+                </div>
+            </div>
+
+            <button id="btnProceedWeight" class="btn btn-primary btn-glow btn-block" style="padding: 1rem; font-size: 1.1rem; margin-top: 1.5rem;">
+                Proceed to Weight Calculation <i class="fa-solid fa-arrow-right" style="margin-left: 0.5rem;"></i>
+            </button>
+        </div>
+
+        <!-- Step 3: Final Report (Wizard Step 4) -->
+        <div id="stepWeightPhase" class="glass-card hidden fade-in-up">
+            <div class="result-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                <h2><i class="fa-solid fa-clipboard-check"></i> Final Analysis Report</h2>
+                <button class="btn btn-secondary" onclick="window.location.reload()">
+                    <i class="fa-solid fa-rotate-right"></i> New Analysis
+                </button>
+            </div>
+
+            <div class="metrics-grid" style="margin-top: 1.5rem;">
+                <div class="metric-card">
+                    <span class="metric-label">Species</span>
+                    <span class="metric-value" id="finalSpecies">--</span>
+                </div>
+                <div class="metric-card">
+                    <span class="metric-label">Estimated Length</span>
+                    <span class="metric-value" id="finalLength">-- cm</span>
+                </div>
+                <div class="metric-card">
+                    <span class="metric-label">Estimated Weight</span>
+                    <span class="metric-value" id="resWeight">-- g</span>
+                </div>
+                <div class="metric-card" style="grid-column: span 3;">
+                    <span class="metric-label">Growth Phase</span>
+                    <span class="metric-value" id="resPhase" style="font-size: 2rem; color: var(--primary-dark);">--</span>
+                </div>
+            </div>
+
+            <!-- Model Performance / Confusion Matrix Data -->
+            <div id="modelStats" class="metrics-grid" style="margin-top: 2rem;">
+                <h3
+                    style="grid-column: 1 / -1; margin-bottom: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">
+                    Model Performance Report</h3>
+
+                <div class="metric-card"
+                    style="grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; background: rgba(0,0,0,0.2);">
+                    <span class="metric-label" style="margin-bottom: 1rem; font-size: 1.1rem;">Confusion Matrix</span>
+
+                    <table
+                        style="width: 100%; max-width: 400px; border-collapse: collapse; text-align: center; color: var(--text-light);">
+                        <thead>
+                            <tr>
+                                <th style="padding: 8px; border-bottom: 1px solid var(--border-color);"></th>
+                                <th style="padding: 8px; border-bottom: 1px solid var(--border-color);">Pred: Snakehead
+                                </th>
+                                <th style="padding: 8px; border-bottom: 1px solid var(--border-color);">Pred: Tilapia
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <th
+                                    style="padding: 8px; border-right: 1px solid var(--border-color); text-align: right;">
+                                    True: Snakehead</th>
+                                <td
+                                    style="padding: 8px; background: rgba(0, 255, 136, 0.2); font-weight: bold; color: var(--accent-primary);">
+                                    388</td>
+                                <td style="padding: 8px; background: rgba(255, 0, 0, 0.1);">13</td>
+                            </tr>
+                            <tr>
+                                <th
+                                    style="padding: 8px; border-right: 1px solid var(--border-color); text-align: right;">
+                                    True: Tilapia</th>
+                                <td style="padding: 8px; background: rgba(255, 0, 0, 0.1);">15</td>
+                                <td
+                                    style="padding: 8px; background: rgba(0, 255, 136, 0.2); font-weight: bold; color: var(--accent-primary);">
+                                    456</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="metric-card">
+                    <span class="metric-label">Overall Accuracy</span>
+                    <span class="metric-value" style="color: var(--accent-primary);">96.8%</span>
+                </div>
+                <div class="metric-card">
+                    <span class="metric-label">Precision (Macro)</span>
+                    <span class="metric-value">96.7%</span>
+                </div>
+                <div class="metric-card">
+                    <span class="metric-label">Recall (Macro)</span>
+                    <span class="metric-value">96.8%</span>
+                </div>
+                <div class="metric-card">
+                    <span class="metric-label">F1-Score</span>
+                    <span class="metric-value">96.8%</span>
+                </div>
+                <div class="metric-card">
+                    <span class="metric-label">Total Images</span>
+                    <span class="metric-value">872</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
